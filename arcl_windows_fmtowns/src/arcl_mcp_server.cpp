@@ -13,7 +13,7 @@ struct ToolDefinition
 const ToolDefinition TOOLS[]=
 {
 	{"arcl_status","{\"name\":\"arcl_status\",\"description\":\"Returns emulator status without advancing virtual time.\",\"inputSchema\":{\"type\":\"object\",\"properties\":{}}}"},
-	{"arcl_run","{\"name\":\"arcl_run\",\"description\":\"Advances a paused emulator by virtual frames, optionally stopping at an L1 console text match or an L2 breakpoint/watchpoint.\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"frames\":{\"type\":\"integer\",\"minimum\":0},\"text_match\":{\"type\":\"string\"},\"until_break\":{\"type\":\"boolean\"}},\"required\":[\"frames\"]}}"},
+	{"arcl_run","{\"name\":\"arcl_run\",\"description\":\"Advances a paused emulator by virtual frames, optionally stopping at an L1 console text match or an L2 breakpoint/watchpoint. ignore_vm_pause is opt-in and ignores only the FreeTOWNSOS/Tsugaru VM pause request. no_render is a diagnostic option that advances the VM without composing a framebuffer.\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"frames\":{\"type\":\"integer\",\"minimum\":0},\"text_match\":{\"type\":\"string\"},\"until_break\":{\"type\":\"boolean\"},\"ignore_vm_pause\":{\"type\":\"boolean\"},\"no_render\":{\"type\":\"boolean\"}},\"required\":[\"frames\"]}}"},
 	{"arcl_pause","{\"name\":\"arcl_pause\",\"description\":\"Pauses continuous emulation.\",\"inputSchema\":{\"type\":\"object\",\"properties\":{}}}"},
 	{"arcl_resume","{\"name\":\"arcl_resume\",\"description\":\"Starts continuous emulation.\",\"inputSchema\":{\"type\":\"object\",\"properties\":{}}}"},
 	{"arcl_reset","{\"name\":\"arcl_reset\",\"description\":\"Resets the machine while retaining its virtual timeline.\",\"inputSchema\":{\"type\":\"object\",\"properties\":{}}}"},

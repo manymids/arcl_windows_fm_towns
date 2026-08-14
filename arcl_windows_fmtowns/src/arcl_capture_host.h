@@ -47,6 +47,13 @@ public:
 			std::vector <unsigned char> rgba;
 			uint64_t sequence=0;
 		};
+		struct FrameInfo
+		{
+			unsigned int width=0;
+			unsigned int height=0;
+			size_t rgbaBytes=0;
+			uint64_t sequence=0;
+		};
 
 		void Start(void) override;
 		void Stop(void) override;
@@ -57,6 +64,8 @@ public:
 
 		/*! Returns false until the first image is published. */
 		bool CopyLatestFrame(Frame &frame) const;
+		/*! Returns metadata without copying the full pixel buffer. */
+		bool CopyLatestFrameInfo(FrameInfo &info) const;
 
 	private:
 		mutable std::mutex frameLock;

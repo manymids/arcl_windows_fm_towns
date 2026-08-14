@@ -271,6 +271,12 @@ public:
 		*/
 		uint32_t VMFlags=0;
 
+		// ARCL's deterministic runner can explicitly opt out of the
+		// Tsugaru-specific cooperative pause request.  Keep this false for
+		// interactive/debugger sessions.
+		bool ignoreVMPauseRequest=false;
+		uint64_t ignoredVMPauseRequests=0;
+
 		/*!
 		consoleCmd
 		  When TOWNS_VMIF_CMD_RELEASE_CONSOLE_CMD(0x0F) is written to I/O TOWNSIO_VM_HOST_IF_CMD_STATUS(0x2386),

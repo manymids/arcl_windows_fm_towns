@@ -988,12 +988,15 @@ public:
 		periodicNanoseconds+=std::chrono::duration_cast <std::chrono::nanoseconds>(std::chrono::steady_clock::now()-periodicStart).count();
 	}
 
-	std::string RunFrames(uint64_t frames,const std::string &textMatch="")
+	std::string RunFrames(uint64_t frames,const std::string &textMatch="",bool ignoreVmPause=false,bool noRender=false)
 	{
 		// Rewind history is opt-in through arcl_rewind(checkpoint).  Saving a
 		// complete VM state is never an implicit side effect of running.
 	running=false;
 	if(towns.CheckDebugBreak()) towns.debugger.ClearStopFlag();
+	const auto previousIgnoreVmPause=towns.var.ignoreVMPauseRequest;
+	const auto ignoredVmPausesBefore=towns.var.ignoredVMPauseRequests;
+	towns.var.ignoreVMPauseRequest=ignoreVmPause;
 	ArclVmRunner runner;
 	ArclVmRunner::Result result;
 	result.frame=ArclVmRunner::FrameFromTownsTime(towns.state.townsTime);
@@ -1026,7 +1029,12 @@ public:
 		if("frames"!=stopReason) break;
 
 		++framesUsed;
-		if(nullptr!=dynamic_cast <ArclNativeWindow *>(&window))
+		if(noRender)
+		{
+			// Diagnostic runs may inspect CRTC state before a possibly-invalid
+			// guest display geometry is composed into a host framebuffer.
+		}
+		else if(nullptr!=dynamic_cast <ArclNativeWindow *>(&window))
 		{
 			// The VM only snapshots VRAM.  The GUI thread turns it into RGBA,
 			// so expensive composition and OpenGL work cannot slow the CPU.
@@ -1040,9 +1048,11 @@ public:
 		}
 	}
 
+	towns.var.ignoreVMPauseRequest=previousIgnoreVmPause;
+	const auto ignoredVmPauses=towns.var.ignoredVMPauseRequests-ignoredVmPausesBefore;
 	return "{\"machine\":\"towns\",\"state\":\"paused\",\"running\":false,\"frame\":"+
 		std::to_string(result.frame)+",\"frames_used\":"+std::to_string(framesUsed)+
-		",\"towns_time\":"+std::to_string(result.townsTime)+",\"stop_reason\":\""+stopReason+"\""+
+		",\"towns_time\":"+std::to_string(result.townsTime)+",\"stop_reason\":\""+stopReason+"\",\"ignored_vm_pauses\":"+std::to_string(ignoredVmPauses)+
 		("breakpoint"==stopReason ? BreakStopJson() : "")+"}";
 	}
 
@@ -1115,8 +1125,21 @@ public:
 	std::string ScreenshotJson(const std::string &request) const
 	{
 		auto *capture=dynamic_cast <ArclCaptureHost::CaptureWindow *>(&window);
+		ArclCaptureHost::CaptureWindow::FrameInfo frameInfo;
+		if(nullptr==capture || !capture->CopyLatestFrameInfo(frameInfo)) return "{\"error\":\"capture_busy_or_empty\"}";
+		// Do not copy an arbitrary renderer buffer into the RPC path.  A malformed
+		// CRTC state can transiently describe a very large image while an EGB call
+		// is in progress; preserve the VM and report that state instead.
+		constexpr uint64_t MAX_SOURCE_PIXELS=32ULL*1024ULL*1024ULL;
+		if(0==frameInfo.width || 0==frameInfo.height ||
+		   MAX_SOURCE_PIXELS<static_cast<uint64_t>(frameInfo.width)*frameInfo.height ||
+		   static_cast<uint64_t>(frameInfo.rgbaBytes)!=static_cast<uint64_t>(frameInfo.width)*frameInfo.height*4)
+		{
+			return "{\"error\":\"invalid_capture_frame\",\"source_width\":"+std::to_string(frameInfo.width)+
+				",\"source_height\":"+std::to_string(frameInfo.height)+",\"rgba_bytes\":"+std::to_string(frameInfo.rgbaBytes)+"}";
+		}
 		ArclCaptureHost::CaptureWindow::Frame frame;
-		if(nullptr==capture || !capture->CopyLatestFrame(frame)) return "{\"error\":\"no_frame\"}";
+		if(!capture->CopyLatestFrame(frame)) return "{\"error\":\"capture_busy\"}";
 
 		const auto x=JsonUnsigned(request,"x");
 		const auto y=JsonUnsigned(request,"y");
@@ -1171,6 +1194,10 @@ public:
 			}
 		}
 		YsMemoryPngEncoder encoder;
+		// The bundled encoder's repetition-reduction pass can take an unbounded
+		// amount of time on display buffers with long uniform runs.  Screenshots
+		// favor predictable RPC latency over PNG compression ratio.
+		encoder.SetDontCompress(YSTRUE);
 		if(YSOK!=encoder.Encode(outputWidth,outputHeight,8,6,output.data())) return "{\"error\":\"png_encode_failed\"}";
 		if(!relativePath.empty())
 		{
@@ -1902,7 +1929,9 @@ int RunMcp(TownsClass &towns,Outside_World &outsideWorld,Outside_World::Sound &s
 		if(!textMatch.empty() && !session.IsToolVisible("arcl_console_read")) return std::string("{\"error\":\"text_match_requires_l1\"}");
 		const auto untilBreak=(HasJsonKey(request,"until_break") && JsonBoolean(request,"until_break"));
 		if(untilBreak && !session.IsToolVisible("arcl_breakpoint")) return std::string("{\"error\":\"until_break_requires_l2\"}");
-		return session.RunFrames(frames,textMatch);
+		const auto ignoreVmPause=(HasJsonKey(request,"ignore_vm_pause") && JsonBoolean(request,"ignore_vm_pause"));
+		const auto noRender=(HasJsonKey(request,"no_render") && JsonBoolean(request,"no_render"));
+		return session.RunFrames(frames,textMatch,ignoreVmPause,noRender);
 	},[&](const std::string &name)
 	{
 		return session.IsToolVisible(name);

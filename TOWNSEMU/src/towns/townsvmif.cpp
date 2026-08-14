@@ -49,7 +49,14 @@ void FMTownsCommon::ProcessVMToHostCommand(unsigned int vmCmd,unsigned int param
 		}
 		break;
 	case TOWNS_VMIF_CMD_PAUSE:
-		debugger.ExternalBreak("Break Request from VM");
+		if(true!=var.ignoreVMPauseRequest)
+		{
+			debugger.ExternalBreak("Break Request from VM");
+		}
+		else
+		{
+			++var.ignoredVMPauseRequests;
+		}
 		break;
 	case TOWNS_VMIF_CMD_EXIT_VM:
 		var.powerOff=true;

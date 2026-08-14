@@ -93,16 +93,12 @@ void ArclCaptureHost::CaptureWindow::Stop(void)
 
 void ArclCaptureHost::CaptureWindow::Interval(void)
 {
-	BaseInterval();
-	if(true==winThr.newImageRendered)
-	{
-		std::lock_guard <std::mutex> lock(frameLock);
-		latestFrame.width=winThr.mostRecentImage.wid;
-		latestFrame.height=winThr.mostRecentImage.hei;
-		latestFrame.rgba=winThr.mostRecentImage.rgba;
-		++latestFrame.sequence;
-		winThr.newImageRendered=false;
-	}
+	// RunFrames publishes its synchronous ForceRender result directly through
+	// UpdateImage.  Unlike a GUI window, this headless host has no separate
+	// renderer thread, so BaseInterval would attempt a second asynchronous render
+	// from a transient CRTC state.  In particular EGB changes those registers in
+	// several steps, and that intermediate state can describe an impractically
+	// large image.  Keep polling limited to device state.
 	std::lock_guard <std::mutex> lock(deviceStateLock);
 	winThr.VMClosed=shared.VMClosedFromVMThread;
 }
@@ -126,12 +122,34 @@ void ArclCaptureHost::CaptureWindow::Communicate(Outside_World *)
 
 bool ArclCaptureHost::CaptureWindow::CopyLatestFrame(Frame &frame) const
 {
-	std::lock_guard <std::mutex> lock(frameLock);
+	std::unique_lock <std::mutex> lock(frameLock,std::try_to_lock);
+	if(!lock.owns_lock())
+	{
+		return false;
+	}
 	if(0==latestFrame.sequence)
 	{
 		return false;
 	}
 	frame=latestFrame;
+	return true;
+}
+
+bool ArclCaptureHost::CaptureWindow::CopyLatestFrameInfo(FrameInfo &info) const
+{
+	std::unique_lock <std::mutex> lock(frameLock,std::try_to_lock);
+	if(!lock.owns_lock())
+	{
+		return false;
+	}
+	if(0==latestFrame.sequence)
+	{
+		return false;
+	}
+	info.width=latestFrame.width;
+	info.height=latestFrame.height;
+	info.rgbaBytes=latestFrame.rgba.size();
+	info.sequence=latestFrame.sequence;
 	return true;
 }
 
