@@ -1,0 +1,12 @@
+# Local assistant configuration and migration backup.
+/.claude/
+/.codex/
+/.mcp.json
+/*.bundle
+
+# Local TOWNSEMU build and media trees.
+/TOWNSEMU/build*/
+/TOWNSEMU/roms/
+/TOWNSEMU/arcl-output/
+/TOWNSEMU/arcl-state/
+

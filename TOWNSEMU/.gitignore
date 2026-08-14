@@ -1,0 +1,5 @@
+build*
+nobackup
+roms/
+arcl-output/
+arcl-state/

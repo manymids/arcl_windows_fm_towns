@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "arcl_windows_fmtowns": {
+      "command": "build\\bin\\arcl_windows_fmtowns.exe",
+      "args": [
+        "--mcp",
+        "--no-window",
+        "--mcp-layers",
+        "l0,l1",
+        "--arcl-allow-root",
+        "arcl_windows_fm_towns",
+        "<path-to-your-rom-image>"
+      ]
+    }
+  }
+}

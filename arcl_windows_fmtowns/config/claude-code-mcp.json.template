@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "arcl_windows_fmtowns": {
+      "command": "C:\\path\\to\\arcl_windows_fmtowns.exe",
+      "args": [
+        "--mcp",
+        "--no-window",
+        "--mcp-layers", "l0,l1",
+        "--arcl-allow-root", "C:\\path\\to\\media",
+        "C:\\path\\to\\ROM_MX"
+      ]
+    }
+  }
+}
