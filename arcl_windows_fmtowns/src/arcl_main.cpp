@@ -1034,16 +1034,14 @@ public:
 			// Diagnostic runs may inspect CRTC state before a possibly-invalid
 			// guest display geometry is composed into a host framebuffer.
 		}
-		else if(nullptr!=dynamic_cast <ArclNativeWindow *>(&window))
-		{
-			// The VM only snapshots VRAM.  The GUI thread turns it into RGBA,
-			// so expensive composition and OpenGL work cannot slow the CPU.
-			const auto publishStart=std::chrono::steady_clock::now();
-			window.SendNewImage(towns,outsideWorld.ImageNeedsFlip());
-			publishNanoseconds+=std::chrono::duration_cast <std::chrono::nanoseconds>(std::chrono::steady_clock::now()-publishStart).count();
-		}
 		else
 		{
+			if(nullptr!=dynamic_cast <ArclNativeWindow *>(&window))
+			{
+				const auto publishStart=std::chrono::steady_clock::now();
+				window.SendNewImage(towns,outsideWorld.ImageNeedsFlip());
+				publishNanoseconds+=std::chrono::duration_cast <std::chrono::nanoseconds>(std::chrono::steady_clock::now()-publishStart).count();
+			}
 			towns.ForceRender(render,outsideWorld,window);
 		}
 	}

@@ -122,11 +122,7 @@ void ArclCaptureHost::CaptureWindow::Communicate(Outside_World *)
 
 bool ArclCaptureHost::CaptureWindow::CopyLatestFrame(Frame &frame) const
 {
-	std::unique_lock <std::mutex> lock(frameLock,std::try_to_lock);
-	if(!lock.owns_lock())
-	{
-		return false;
-	}
+	std::lock_guard <std::mutex> lock(frameLock);
 	if(0==latestFrame.sequence)
 	{
 		return false;
@@ -137,11 +133,7 @@ bool ArclCaptureHost::CaptureWindow::CopyLatestFrame(Frame &frame) const
 
 bool ArclCaptureHost::CaptureWindow::CopyLatestFrameInfo(FrameInfo &info) const
 {
-	std::unique_lock <std::mutex> lock(frameLock,std::try_to_lock);
-	if(!lock.owns_lock())
-	{
-		return false;
-	}
+	std::lock_guard <std::mutex> lock(frameLock);
 	if(0==latestFrame.sequence)
 	{
 		return false;

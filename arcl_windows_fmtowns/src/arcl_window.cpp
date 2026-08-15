@@ -15,6 +15,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "fssimplewindow_connection.h"
 #include "townsdef.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#include "windows/fssimplewindowinternal.h"
+#endif
+
 namespace
 {
 void AddKey(std::set <unsigned int> &keys,int fsKey,const char townsKey[])
@@ -30,6 +35,14 @@ void ArclNativeWindow::Start(void)
 		FsOpenWindow(0,0,640,480,1,"Tsugaru ARCL");
 		FsRegisterCloseWindowCallBack(CloseWindowCallBack,this);
 	}
+
+#ifdef _WIN32
+	auto *internal=FsGetSimpleWindowInternal();
+	if(nullptr!=internal && nullptr!=internal->hDC && nullptr!=internal->hRC)
+	{
+		wglMakeCurrent(internal->hDC,internal->hRC);
+	}
+#endif
 
 	glClearColor(0.0f,0.0f,0.0f,1.0f);
 	glGenTextures(1,&textureId);
@@ -135,6 +148,14 @@ void ArclNativeWindow::Render(bool swapBuffers)
 	{
 		return;
 	}
+
+#ifdef _WIN32
+	auto *internal=FsGetSimpleWindowInternal();
+	if(nullptr!=internal && nullptr!=internal->hDC && nullptr!=internal->hRC)
+	{
+		wglMakeCurrent(internal->hDC,internal->hRC);
+	}
+#endif
 
 	int windowWidth,windowHeight;
 	FsGetWindowSize(windowWidth,windowHeight);
